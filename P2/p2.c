@@ -128,8 +128,7 @@ int main(int argc, const char * argv[]) {
      */
     
     //Print board for first time
-    int m,n,x,y;
-    printf("\n\t---GAME BOARD---\n");
+    int m,n,x;
     printf("   ");
     for(x = 0; x < col; x++){
         printf("%3d",x);
@@ -193,15 +192,38 @@ int main(int argc, const char * argv[]) {
     int rowChoice2;
     int colChoice2;
     
+    
+    printf("   ");
+    for(x = 0; x < col; x++){
+        printf("%3d",x);
+    }
+    printf("\n\n");
+    for(m = 0; m < row; m++){
+        printf("%3d", m);
+        for(n = 0; n < col; n++){
+            printf("%3d",board[m][n]);
+        }
+        printf("\n\n");
+    }
+    
+    
     while(gameStillGoing == 1){
         /*
          
          ****       DEBUG       ****
          
          */
-        
+        printf("Card: ");
         for(m = 0; m < numCardsCanMemorize; m++){
             printf("%d  ", memory[0][m]);
+        }
+        printf("\nRow: ");
+        for(m = 0; m < numCardsCanMemorize; m++){
+            printf("%d  ",memory[1][m]);
+        }
+        printf("\nCol: ");
+        for(m = 0; m < numCardsCanMemorize; m++){
+            printf("%d  ",memory[2][m]);
         }
         
         
@@ -269,7 +291,7 @@ int main(int argc, const char * argv[]) {
                 }
                 else if(m == rowChoice2 && n == colChoice2){
                     printf("%3d", board[rowChoice2][colChoice2]);
-                    //Add that card (and it's location) to CPU memory (IF AVAILABLE)
+                    //Add that card (and it's location) to CPU memory (IF AVAILABLE), and we haven't already memorized that card
                     if(index != numCardsCanMemorize){
                         //The memory isn't full, so we can add stuff
                         memory[0][index] = board[rowChoice2][colChoice2];
@@ -333,9 +355,6 @@ int main(int argc, const char * argv[]) {
                     if(board[m][n] == -1){
                         printf("   ");
                     }
-                    //else if(m == rowChoice2 && n == colChoice2){
-                      //  printf("   ");
-                    //}
                     else{
                         printf("  X");
                     }
@@ -370,206 +389,560 @@ int main(int argc, const char * argv[]) {
         int CPU_ColChoice1 = -1;
         int CPU_RowChoice2 = -1;
         int CPU_ColChoice2 = -1;
+        int turnIsOver = 0;
         
         /*
          When making a move, the computer will first look to see if it has any matches in it's memory. If not it chooses a card at random. Then, for it's second guess, it checks to see if anything in it's memory matches the first guess. If not, it chooses randomly, and memorizes both cards (if it has space). If it doesn't have space, it "forgets" the first card.
          
+         I will  treat these as 3 cases:
+            Case I (Best Case): There is a match already in memory, so just go right to it and flip it over. Do everything within that loop structure (displaying board, updating memory, etc.
+            Case II: We don't have any matches in our memory, so randomly choose a card (that we don't already know), then check if we already have a card in our memory that matches that card. Do all updating and stuff in the loop.
+            Case III: We don't have any matches, so we just pick two random cards and hope for the best. We have to check for matches after we choose the second card.
+         
+         Notice that in the first two cases, we are guarenteed to have a match. We know that at some point, there will be a match, so our code can reflect that. In the third case, we need to check for a match (that's the only case where it's necessary to check).
          */
         
-        //First, look through our memeory and see if we've got matches
+        
+        /** -----------------------   CASE I   ------------------------**/
         int w, b;
+        int noMatches = 1;  //= 0 if we find a match in our memory
         for(w = 0; w < numCardsCanMemorize; w++){
             for(b = w+1; b < numCardsCanMemorize; b++){
-                if(memory[0][w] == memory[0][b] && memory[0][w] >= 0){
-                    //We've got two cards that match in our memory, let's flip 'em
+                if(memory[0][b] == memory[0][w] && memory[0][b] >= 0 && memory[0][w] >= 0 && turnIsOver == 0){
+                    //We've got a match in our memory, flip them
                     CPU_RowChoice1 = memory[1][w];
                     CPU_ColChoice1 = memory[2][w];
                     CPU_RowChoice2 = memory[1][b];
                     CPU_ColChoice2 = memory[2][b];
-                    break;
+                    
+                    //Display the CPU's first pick
+                    printf("   ");
+                    for(x = 0; x < col; x++){
+                        printf("%3d",x);
+                    }
+                    printf("\n\n");
+                    for(m = 0; m < row; m++){
+                        printf("%3d", m);
+                        for(n = 0; n < col; n++){
+                            if(board[m][n] == -1){
+                                printf("   ");
+                            }
+                            else if(m == CPU_RowChoice1 && n == CPU_ColChoice1){
+                                printf("%3d", board[CPU_RowChoice1][CPU_ColChoice1]);
+                            }
+                            else{
+                                printf("  X");
+                            }
+                        }
+                        printf("\n\n");
+                    }
+                    
+                    //Display the CPU's second pick
+                    printf("   ");
+                    for(x = 0; x < col; x++){
+                        printf("%3d",x);
+                    }
+                    printf("\n\n");
+                    for(m = 0; m < row; m++){
+                        printf("%3d", m);
+                        for(n = 0; n < col; n++){
+                            if(board[m][n] == -1){
+                                printf("   ");
+                            }
+                            
+                            else if(m == CPU_RowChoice2 && n == CPU_ColChoice2){
+                                printf("%3d", board[CPU_RowChoice2][CPU_ColChoice2]);
+                            }
+                            else{
+                                printf("  Q");
+                            }
+                        }
+                        printf("\n\n");
+                    }
+                    
+                    
+                    //Forget those cards
+                    int z;
+                    for(z = 0; z < numCardsCanMemorize; z++){
+                        if(memory[0][z] == board[rowChoice1][colChoice1]){
+                            memory[0][z] = memory[0][z+1];  //move everything forward by one to "forget" the matched cards
+                            memory[1][z] = memory[1][z+1];
+                            memory[2][z] = memory[2][z+1];
+                        }
+                    }
+                    
+                    //Update the game board
+                    board[CPU_RowChoice1][CPU_ColChoice1] = -1;
+                    board[CPU_RowChoice2][CPU_ColChoice2] = -1;
+                    
+                    //print a blank spot in those two locations
+                    printf("   ");
+                    for(x = 0; x < col; x++){
+                        printf("%3d",x);
+                    }
+                    printf("\n\n");
+                    for(m = 0; m < row; m++){
+                        printf("%3d", m);
+                        for(n = 0; n < col; n++){
+                            if(board[m][n] == -1){
+                                printf("   ");
+                            }
+                            else{
+                                printf("  W");
+                            }
+                        }
+                        printf("\n\n");
+                    }
+                    numCPUMatches++;
+                    noMatches = 0;
+                    turnIsOver = 1;
+                    
                 }
             }
         }
-        //We didn't find any matches, choose a random card as our pick
-        CPU_RowChoice1 = rand() % row;
-        CPU_ColChoice1 = rand() % col;
-        while(board[CPU_RowChoice1][CPU_ColChoice1] == -1) {
-            //This card has already been removed, pick another
+        
+        /** -----------------------   CASE II   ------------------------ **/
+        if(turnIsOver == 0){
+            //We didn't find any matches, choose a random card as our pick, but one that isn't in our memory already
             CPU_RowChoice1 = rand() % row;
             CPU_ColChoice1 = rand() % col;
-        }
-        
-        
-        //Display the CPU's first pick
-        printf("   ");
-        for(x = 0; x < col; x++){
-            printf("%3d",x);
-        }
-        printf("\n\n");
-        for(m = 0; m < row; m++){
-            printf("%3d", m);
-            for(n = 0; n < col; n++){
-                if(board[m][n] == -1){
-                    printf("   ");
+            for(m = 0; m < numCardsCanMemorize; m++){
+                while(board[CPU_RowChoice1][CPU_ColChoice1] == -1 || (memory[1][m] == CPU_RowChoice1 && memory[2][m] == CPU_ColChoice1)) {
+                    //This card has already been removed, pick another
+                    CPU_RowChoice1 = rand() % row;
+                    CPU_ColChoice1 = rand() % col;
                 }
-                else if(m == CPU_RowChoice1 && n == CPU_ColChoice1){
-                    printf("%3d", board[CPU_RowChoice1][CPU_ColChoice1]);
-                }
-                else{
-                    printf("  X");
-                }
+            }
+            
+            //Display the CPU's first pick
+            printf("   ");
+            for(x = 0; x < col; x++){
+                printf("%3d",x);
             }
             printf("\n\n");
+            for(m = 0; m < row; m++){
+                printf("%3d", m);
+                for(n = 0; n < col; n++){
+                    if(board[m][n] == -1){
+                        printf("   ");
+                    }
+                    else if(m == CPU_RowChoice1 && n == CPU_ColChoice1){
+                        printf("%3d", board[CPU_RowChoice1][CPU_ColChoice1]);
+                    }
+                    else{
+                        printf("  E");
+                    }
+                }
+                printf("\n\n");
+            }
         }
         
-        //Now check if something matches the first card displayed
+        //Now check for a match in our memory
         int i;
         for(i = 0; i < numCardsCanMemorize; i++){
-            if(didCPUMatch(board[CPU_RowChoice1][CPU_ColChoice1], memory[0][i]) == 1){
-                //we've got another card of that value in our memory
+            if(didCPUMatch(board[CPU_RowChoice1][CPU_ColChoice1], memory[0][i] == 1) && turnIsOver == 0){
+                //we've got a match - flip it and everything immediately
                 CPU_RowChoice2 = memory[1][i];
                 CPU_ColChoice2 = memory[2][i];
+                
+                //Display the CPU's second pick
+                printf("   ");
+                for(x = 0; x < col; x++){
+                    printf("%3d",x);
+                }
+                printf("\n\n");
+                for(m = 0; m < row; m++){
+                    printf("%3d", m);
+                    for(n = 0; n < col; n++){
+                        if(board[m][n] == -1){
+                            printf("   ");
+                        }
+                        
+                        else if(m == CPU_RowChoice2 && n == CPU_ColChoice2){
+                            printf("%3d", board[CPU_RowChoice2][CPU_ColChoice2]);
+                        }
+                        else{
+                            printf("  R");
+                        }
+                    }
+                    printf("\n\n");
+                }
+                
+                int z;
+                for(z = 0; z < numCardsCanMemorize; z++){
+                    if(memory[0][z] == board[rowChoice1][colChoice1]){
+                        memory[0][z] = memory[0][z+1];  //move everything forward by one to "forget" the matched cards
+                        memory[1][z] = memory[1][z+1];
+                        memory[2][z] = memory[2][z+1];
+                    }
+                }
+                
+                //Update the game board
+                board[CPU_RowChoice1][CPU_ColChoice1] = -1;
+                board[CPU_RowChoice2][CPU_ColChoice2] = -1;
+                
+                //print a blank spot in those two locations
+                printf("   ");
+                for(x = 0; x < col; x++){
+                    printf("%3d",x);
+                }
+                printf("\n\n");
+                for(m = 0; m < row; m++){
+                    printf("%3d", m);
+                    for(n = 0; n < col; n++){
+                        if(board[m][n] == -1){
+                            printf("   ");
+                        }
+                        else{
+                            printf("  T");
+                        }
+                    }
+                    printf("\n\n");
+                }
+                numCPUMatches++;
+                turnIsOver = 1;
+                noMatches = 0;
+                break;
             }
-            else{
-                //We don't have a card that matches our random guess, so we must pick another random card
-                CPU_RowChoice2 = rand() % row;
-                CPU_ColChoice2 = rand() % col;
-                while(board[CPU_RowChoice2][CPU_ColChoice2] == -1 && CPU_RowChoice2 != CPU_RowChoice1 && CPU_ColChoice2 != CPU_ColChoice1) {
+        }
+        if(noMatches == 1){
+            //we don't have any matches in our memory for the first random card, choose another random card (that isn't in our memory and isn't flipped)
+            CPU_RowChoice2 = rand() % row;
+            CPU_ColChoice2 = rand() % col;
+            for(m = 0; m < numCardsCanMemorize; m++){
+                while(board[CPU_RowChoice2][CPU_ColChoice2] == -1 || (memory[1][m] == CPU_RowChoice2 && memory[2][m] == CPU_ColChoice2)) {
                     //This card has already been removed, pick another
                     CPU_RowChoice2 = rand() % row;
                     CPU_ColChoice2 = rand() % col;
                 }
             }
-        }
-        
-        //Display the CPU's second pick
-        printf("   ");
-        for(x = 0; x < col; x++){
-            printf("%3d",x);
-        }
-        printf("\n\n");
-        for(m = 0; m < row; m++){
-            printf("%3d", m);
-            for(n = 0; n < col; n++){
-                if(board[m][n] == -1){
-                    printf("   ");
+            //Display the CPU's first pick
+            printf("   ");
+            for(x = 0; x < col; x++){
+                printf("%3d",x);
+            }
+            printf("\n\n");
+            for(m = 0; m < row; m++){
+                printf("%3d", m);
+                for(n = 0; n < col; n++){
+                    if(board[m][n] == -1){
+                        printf("   ");
+                    }
+                    else if(m == CPU_RowChoice1 && n == CPU_ColChoice1){
+                        printf("%3d", board[CPU_RowChoice1][CPU_ColChoice1]);
+                    }
+                    else{
+                        printf("  B");
+                    }
+                }
+                printf("\n\n");
+            }
+            //Display the CPU's second pick
+            printf("   ");
+            for(x = 0; x < col; x++){
+                printf("%3d",x);
+            }
+            printf("\n\n");
+            for(m = 0; m < row; m++){
+                printf("%3d", m);
+                for(n = 0; n < col; n++){
+                    if(board[m][n] == -1){
+                        printf("   ");
+                    }
+                    
+                    else if(m == CPU_RowChoice2 && n == CPU_ColChoice2){
+                        printf("%3d", board[CPU_RowChoice2][CPU_ColChoice2]);
+                    }
+                    else{
+                        printf("  P");
+                    }
+                }
+                printf("\n\n");
+            }
+            
+            //Now see if we got lucky and our second card is a match
+            if(didCPUMatch(board[CPU_RowChoice1][CPU_ColChoice1], board[CPU_RowChoice2][CPU_ColChoice2]) == 1){
+                
+                numCPUMatches++;
+                int z;
+                for(z = 0; z < numCardsCanMemorize; z++){
+                    if(memory[0][z] == board[rowChoice1][colChoice1]){
+                        memory[0][z] = memory[0][z+1];  //move everything forward by one to "forget" the matched cards
+                        memory[1][z] = memory[1][z+1];
+                        memory[2][z] = memory[2][z+1];
+                    }
                 }
                 
-                else if(m == CPU_RowChoice2 && n == CPU_ColChoice2){
-                    printf("%3d", board[CPU_RowChoice2][CPU_ColChoice2]);
-                }
-                else{
-                    printf("  X");
-                }
-            }
-            printf("\n\n");
-        }
-        
-        //Now that we've officially selected our two cards to guess, we check for matches, and remove them if we've got a match
-        if(didCPUMatch(board[CPU_RowChoice1][CPU_ColChoice1], board[CPU_RowChoice2][CPU_ColChoice2]) == 1){
-            
-            numCPUMatches++;
-            
-            //Get rid of the matched cards from the CPU's memory
-            int z, g, f;
-            //Card value
-            for(z = 0; z < numCardsCanMemorize; z++){
-                if(memory[0][z] == board[rowChoice1][colChoice1]){
-                    memory[0][z] = memory[0][z+1];  //move everything forward by one to "forget" the matched cards
-                }
-            }
-            //Row
-            for(g = 0; g < numCardsCanMemorize; g++){
-                if(memory[0][g] == board[rowChoice1][colChoice1]){
-                    memory[1][g] = memory[1][g+1];  //move everything forward by one to "forget" the matched cards
-                }
-            }
-            //Column
-            for(f = 0; f < numCardsCanMemorize; f++){
-                if(memory[0][f] == board[rowChoice1][colChoice1]){
-                    memory[2][f] = memory[2][f+1];  //move everything forward by one to "forget" the matched cards
-                }
-            }
-            
-            board[CPU_RowChoice1][CPU_ColChoice1] = -1;
-            board[CPU_RowChoice2][CPU_ColChoice2] = -1;
-            
-            //print a blank spot in those two locations
-            printf("   ");
-            for(x = 0; x < col; x++){
-                printf("%3d",x);
-            }
-            printf("\n\n");
-            for(m = 0; m < row; m++){
-                printf("%3d", m);
-                for(n = 0; n < col; n++){
-                    if(board[m][n] == -1){
-                        printf("   ");
-                    }
-                    //else if(m == CPU_RowChoice2 && n == CPU_ColChoice2){
-                        //printf("   ");
-                    //}
-                    else{
-                        printf("  X");
-                    }
+                //Update the game board
+                board[CPU_RowChoice1][CPU_ColChoice1] = -1;
+                board[CPU_RowChoice2][CPU_ColChoice2] = -1;
+                
+                //print a blank spot in those two locations
+                printf("   ");
+                for(x = 0; x < col; x++){
+                    printf("%3d",x);
                 }
                 printf("\n\n");
-            }
-            
-        }
-        else{
-            //We didn't find any matches, so let's memorize these cards (if we have space)
-            if(index != numCardsCanMemorize){
-                memory[0][index] = board[CPU_RowChoice1][CPU_ColChoice1];
-                memory[1][index] = CPU_RowChoice1;
-                memory[2][index] = CPU_ColChoice1;
-                index++;
-                memory[0][index] = board[CPU_RowChoice2][CPU_ColChoice2];
-                memory[1][index] = CPU_RowChoice2;
-                memory[2][index] = CPU_ColChoice2;
-                index++;
+                for(m = 0; m < row; m++){
+                    printf("%3d", m);
+                    for(n = 0; n < col; n++){
+                        if(board[m][n] == -1){
+                            printf("   ");
+                        }
+                        else{
+                            printf("  D");
+                        }
+                    }
+                    printf("\n\n");
+                }
             }
             else{
-                int i;
-                for(i = 0; i < numCardsCanMemorize; i++){
-                    //Shift everything forward by one to "Forget" oldest card and remember new one
-                    memory[0][i] = memory[0][i+1];
-                    memory[1][i] = memory[1][i+1];
-                    memory[2][i] = memory[2][i+1];
+                //We didn't find any matches, so let's memorize these cards (if we have space)
+                if(index != numCardsCanMemorize){
+                    memory[0][index] = board[CPU_RowChoice1][CPU_ColChoice1];
+                    memory[1][index] = CPU_RowChoice1;
+                    memory[2][index] = CPU_ColChoice1;
+                    index++;
+                    memory[0][index] = board[CPU_RowChoice2][CPU_ColChoice2];
+                    memory[1][index] = CPU_RowChoice2;
+                    memory[2][index] = CPU_ColChoice2;
+                    index++;
                 }
-                memory[0][index] = board[CPU_RowChoice1][CPU_ColChoice1];
-                memory[1][index] = CPU_RowChoice1;
-                memory[2][index] = CPU_ColChoice1;
-                //Now repeat to memorize the second card
-                for(i = 0; i < numCardsCanMemorize; i++){
-                    memory[0][i] = memory[0][i+1];
-                    memory[1][i] = memory[1][i+1];
-                    memory[2][i] = memory[2][i+1];
+                else{
+                    int i;
+                    for(i = 0; i < numCardsCanMemorize; i++){
+                        //Shift everything forward by one to "Forget" oldest card and remember new one
+                        memory[0][i] = memory[0][i+1];
+                        memory[1][i] = memory[1][i+1];
+                        memory[2][i] = memory[2][i+1];
+                    }
+                    memory[0][index] = board[CPU_RowChoice1][CPU_ColChoice1];
+                    memory[1][index] = CPU_RowChoice1;
+                    memory[2][index] = CPU_ColChoice1;
+                    //Now repeat to memorize the second card
+                    for(i = 0; i < numCardsCanMemorize; i++){
+                        memory[0][i] = memory[0][i+1];
+                        memory[1][i] = memory[1][i+1];
+                        memory[2][i] = memory[2][i+1];
+                    }
+                    memory[0][index] = board[CPU_RowChoice2][CPU_ColChoice2];
+                    memory[1][index] = CPU_RowChoice2;
+                    memory[2][index] = CPU_ColChoice2;
                 }
-                memory[0][index] = board[CPU_RowChoice2][CPU_ColChoice2];
-                memory[1][index] = CPU_RowChoice2;
-                memory[2][index] = CPU_ColChoice2;
-            }
-            //we didn't get a match, so print out the board as it was
-            printf("   ");
-            for(x = 0; x < col; x++){
-                printf("%3d",x);
-            }
-            printf("\n\n");
-            for(m = 0; m < row; m++){
-                printf("%3d", m);
-                for(n = 0; n < col; n++){
-                    if(board[m][n] == -1){
-                        printf("   ");
-                    }
-                    else{
-                        printf("  X");
-                    }
+                //we didn't get a match, so print out the board as it was
+                printf("   ");
+                for(x = 0; x < col; x++){
+                    printf("%3d",x);
                 }
                 printf("\n\n");
+                for(m = 0; m < row; m++){
+                    printf("%3d", m);
+                    for(n = 0; n < col; n++){
+                        if(board[m][n] == -1){
+                            printf("   ");
+                        }
+                        else{
+                            printf("  A");
+                        }
+                    }
+                    printf("\n\n");
+                }
             }
-            
         }
+        
+        //First, look through our memeory and see if we've got matches
+        
+//        for(w = 0; w < numCardsCanMemorize; w++){
+//            for(b = w+1; b < numCardsCanMemorize; b++){
+//                if(memory[0][w] == memory[0][b] && memory[0][w] >= 0){
+//                    //We've got two cards that match in our memory, let's flip 'em
+//                    CPU_RowChoice1 = memory[1][w];
+//                    CPU_ColChoice1 = memory[2][w];
+//                    CPU_RowChoice2 = memory[1][b];
+//                    CPU_ColChoice2 = memory[2][b];
+//                }
+//            }
+//        }
+////        //We didn't find any matches, choose a random card as our pick
+////        CPU_RowChoice1 = rand() % row;
+////        CPU_ColChoice1 = rand() % col;
+////        while(board[CPU_RowChoice1][CPU_ColChoice1] == -1) {
+////            //This card has already been removed, pick another
+////            CPU_RowChoice1 = rand() % row;
+////            CPU_ColChoice1 = rand() % col;
+////        }
+//        
+//        
+//        //Display the CPU's first pick
+//        printf("   ");
+//        for(x = 0; x < col; x++){
+//            printf("%3d",x);
+//        }
+//        printf("\n\n");
+//        for(m = 0; m < row; m++){
+//            printf("%3d", m);
+//            for(n = 0; n < col; n++){
+//                if(board[m][n] == -1){
+//                    printf("   ");
+//                }
+//                else if(m == CPU_RowChoice1 && n == CPU_ColChoice1){
+//                    printf("%3d", board[CPU_RowChoice1][CPU_ColChoice1]);
+//                }
+//                else{
+//                    printf("  X");
+//                }
+//            }
+//            printf("\n\n");
+//        }
+//        
+//        //Now check if something matches the first card displayed
+////        int i;
+////        for(i = 0; i < numCardsCanMemorize; i++){
+////            if(didCPUMatch(board[CPU_RowChoice1][CPU_ColChoice1], memory[0][i]) == 1){
+////                //we've got another card of that value in our memory
+////                CPU_RowChoice2 = memory[1][i];
+////                CPU_ColChoice2 = memory[2][i];
+////            }
+////            else{
+////                //We don't have a card that matches our random guess, so we must pick another random card
+////                CPU_RowChoice2 = rand() % row;
+////                CPU_ColChoice2 = rand() % col;
+////                while(board[CPU_RowChoice2][CPU_ColChoice2] == -1 && CPU_RowChoice2 != CPU_RowChoice1 && CPU_ColChoice2 != CPU_ColChoice1) {
+////                    //This card has already been removed, pick another
+////                    CPU_RowChoice2 = rand() % row;
+////                    CPU_ColChoice2 = rand() % col;
+////                }
+////            }
+////        }
+//        
+//        //Display the CPU's second pick
+//        printf("   ");
+//        for(x = 0; x < col; x++){
+//            printf("%3d",x);
+//        }
+//        printf("\n\n");
+//        for(m = 0; m < row; m++){
+//            printf("%3d", m);
+//            for(n = 0; n < col; n++){
+//                if(board[m][n] == -1){
+//                    printf("   ");
+//                }
+//                
+//                else if(m == CPU_RowChoice2 && n == CPU_ColChoice2){
+//                    printf("%3d", board[CPU_RowChoice2][CPU_ColChoice2]);
+//                }
+//                else{
+//                    printf("  X");
+//                }
+//            }
+//            printf("\n\n");
+//        }
+        
+        //Now that we've officially selected our two cards to guess, we check for matches, and remove them if we've got a match
+//        if(didCPUMatch(board[CPU_RowChoice1][CPU_ColChoice1], board[CPU_RowChoice2][CPU_ColChoice2]) == 1){
+//            
+//            numCPUMatches++;
+//            
+//            //Get rid of the matched cards from the CPU's memory
+//            int z, g, f;
+//            //Card value
+//            for(z = 0; z < numCardsCanMemorize; z++){
+//                if(memory[0][z] == board[rowChoice1][colChoice1]){
+//                    memory[0][z] = memory[0][z+1];  //move everything forward by one to "forget" the matched cards
+//                }
+//            }
+//            //Row
+//            for(g = 0; g < numCardsCanMemorize; g++){
+//                if(memory[0][g] == board[rowChoice1][colChoice1]){
+//                    memory[1][g] = memory[1][g+1];  //move everything forward by one to "forget" the matched cards
+//                }
+//            }
+//            //Column
+//            for(f = 0; f < numCardsCanMemorize; f++){
+//                if(memory[0][f] == board[rowChoice1][colChoice1]){
+//                    memory[2][f] = memory[2][f+1];  //move everything forward by one to "forget" the matched cards
+//                }
+//            }
+//            
+//            board[CPU_RowChoice1][CPU_ColChoice1] = -1;
+//            board[CPU_RowChoice2][CPU_ColChoice2] = -1;
+//            
+//            //print a blank spot in those two locations
+//            printf("   ");
+//            for(x = 0; x < col; x++){
+//                printf("%3d",x);
+//            }
+//            printf("\n\n");
+//            for(m = 0; m < row; m++){
+//                printf("%3d", m);
+//                for(n = 0; n < col; n++){
+//                    if(board[m][n] == -1){
+//                        printf("   ");
+//                    }
+//                    //else if(m == CPU_RowChoice2 && n == CPU_ColChoice2){
+//                        //printf("   ");
+//                    //}
+//                    else{
+//                        printf("  X");
+//                    }
+//                }
+//                printf("\n\n");
+//            }
+//            
+//        }
+//        else{
+//            //We didn't find any matches, so let's memorize these cards (if we have space)
+//            if(index != numCardsCanMemorize){
+//                memory[0][index] = board[CPU_RowChoice1][CPU_ColChoice1];
+//                memory[1][index] = CPU_RowChoice1;
+//                memory[2][index] = CPU_ColChoice1;
+//                index++;
+//                memory[0][index] = board[CPU_RowChoice2][CPU_ColChoice2];
+//                memory[1][index] = CPU_RowChoice2;
+//                memory[2][index] = CPU_ColChoice2;
+//                index++;
+//            }
+//            else{
+//                int i;
+//                for(i = 0; i < numCardsCanMemorize; i++){
+//                    //Shift everything forward by one to "Forget" oldest card and remember new one
+//                    memory[0][i] = memory[0][i+1];
+//                    memory[1][i] = memory[1][i+1];
+//                    memory[2][i] = memory[2][i+1];
+//                }
+//                memory[0][index] = board[CPU_RowChoice1][CPU_ColChoice1];
+//                memory[1][index] = CPU_RowChoice1;
+//                memory[2][index] = CPU_ColChoice1;
+//                //Now repeat to memorize the second card
+//                for(i = 0; i < numCardsCanMemorize; i++){
+//                    memory[0][i] = memory[0][i+1];
+//                    memory[1][i] = memory[1][i+1];
+//                    memory[2][i] = memory[2][i+1];
+//                }
+//                memory[0][index] = board[CPU_RowChoice2][CPU_ColChoice2];
+//                memory[1][index] = CPU_RowChoice2;
+//                memory[2][index] = CPU_ColChoice2;
+//            }
+//            //we didn't get a match, so print out the board as it was
+//            printf("   ");
+//            for(x = 0; x < col; x++){
+//                printf("%3d",x);
+//            }
+//            printf("\n\n");
+//            for(m = 0; m < row; m++){
+//                printf("%3d", m);
+//                for(n = 0; n < col; n++){
+//                    if(board[m][n] == -1){
+//                        printf("   ");
+//                    }
+//                    else{
+//                        printf("  X");
+//                    }
+//                }
+//                printf("\n\n");
+//            }
+//            
+//        }
         //output to file
         writeToOutput(output2,roundNum, rowChoice1, colChoice1, board[rowChoice1][colChoice1], rowChoice2, colChoice2, board[rowChoice2][colChoice2], CPU_RowChoice1, CPU_ColChoice1, board[CPU_RowChoice1][CPU_ColChoice1], CPU_RowChoice2, CPU_ColChoice2, board[CPU_RowChoice2][CPU_ColChoice2]);
 
